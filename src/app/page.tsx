@@ -101,7 +101,7 @@ export default function Home() {
 
         {/* Weather Info Box */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-gray-300 bg-opacity-80 rounded-lg shadow-lg p-8 text-center max-w-sm">
+          <div className="bg-gray-100 bg-opacity-80 rounded-lg shadow-lg p-8 text-center max-w-sm border-blue-500 border-4">
             <h2 className="text-xl font-bold mb-4">Current Weather</h2>
             <div className="text-lg mb-2">
               <strong>Temperature:</strong>{" "}
