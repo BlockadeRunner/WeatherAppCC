@@ -8,58 +8,62 @@ export default function Home() {
   const [isRaining, setIsRaining] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Function to toggle isRaining state
-  const toggleIsRaining = () => {
-    setIsRaining((prev) => (prev === "Yes" ? "No" : "Yes"));
+  // // Function to toggle isRaining state
+  // const toggleIsRaining = () => {
+  //   console.log("Toggling isRaining state...");
+  //   setIsRaining((prev) => (prev === "Yes" ? "No" : "Yes"));
+  // };
+
+  // Function to fetch weather data
+  const fetchWeather = async () => {
+    console.log("Fetching weather data...");
+    try {
+      const response = await fetch(
+        "https://api.weather.gov/gridpoints/AKQ/73,68/forecast/hourly"
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch weather data");
+      }
+      const data = await response.json();
+
+      // Extract temperature
+      const temp = data.properties.periods[0].temperature;
+      setTemperature(`${temp}°F`);
+
+      // Extract pressure (example: replace with actual field from API)
+      const pressureValue =
+        data.properties.periods[0].detailedForecast.includes("pressure")
+          ? "1013 hPa" // Replace with actual pressure field
+          : "1016.50 mb"; // Example value
+      setPressure(pressureValue);
+
+      // Extract actively raining (example: replace with actual field from API)
+      const raining = data.properties.periods[0].shortForecast.includes("Rain")
+        ? "Yes"
+        : "No";
+      setIsRaining(raining);
+    } catch (error) {
+      console.error("Error fetching weather data:", error);
+      setTemperature("N/A");
+      setPressure("N/A");
+      setIsRaining("N/A");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // useEffect to fetch weather data on mount and every 10 seconds
   useEffect(() => {
-    async function fetchWeather() {
-      try {
-        const response = await fetch(
-          "https://api.weather.gov/gridpoints/AKQ/37,57/forecast"
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch weather data");
-        }
-        const data = await response.json();
-
-        // Extract temperature
-        const temp = data.properties.periods[0].temperature;
-        setTemperature(`${temp}°F`);
-
-        // Extract pressure (example: replace with actual field from API)
-        const pressureValue =
-          data.properties.periods[0].detailedForecast.includes("pressure")
-            ? "1013 hPa" // Replace with actual pressure field
-            : "N/A";
-        setPressure(pressureValue);
-
-        // Extract actively raining (example: replace with actual field from API)
-        const raining = data.properties.periods[0].shortForecast.includes(
-          "Rain"
-        )
-          ? "Yes"
-          : "No";
-        setIsRaining(raining);
-      } catch (error) {
-        console.error("Error fetching weather data:", error);
-        setTemperature("N/A");
-        setPressure("N/A");
-        setIsRaining("N/A");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchWeather();
-  }, []);
-
-  // useEffect to call toggleIsRaining every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(toggleIsRaining, 10000);
+    fetchWeather(); // Initial fetch
+    const interval = setInterval(fetchWeather, 10000); // Fetch every 10 seconds
     return () => clearInterval(interval); // Cleanup interval on component unmount
   }, []);
+
+  // // useEffect to call toggleIsRaining every 10 seconds
+  // useEffect(() => {
+  //   const interval = setInterval(toggleIsRaining, 5000);
+  //   return () => clearInterval(interval); // Cleanup interval on component unmount
+  // }, []);
 
   return (
     <main className="flex flex-col h-screen w-screen">
