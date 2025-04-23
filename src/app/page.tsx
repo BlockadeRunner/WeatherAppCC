@@ -14,6 +14,17 @@ export default function Home() {
   //   setIsRaining((prev) => (prev === "Yes" ? "No" : "Yes"));
   // };
 
+  // Function to determine prediction based on pressure
+  const getPrediction = (pressure: string | null): string => {
+    if (!pressure || pressure === "N/A") return "Unable to determine.";
+    const pressureValue = parseFloat(pressure); // Convert pressure to a number
+    if (pressureValue < 1000) return "Stormy/Bad Weather Likely";
+    if (pressureValue >= 1000 && pressureValue <= 1020)
+      return "Mixed or Changing Weather";
+    if (pressureValue > 1020) return "Clear/Fair Weather Likely";
+    return "Unable to determine.";
+  };
+
   // Function to fetch weather data
   const fetchWeather = async () => {
     console.log("Fetching weather data...");
@@ -33,8 +44,8 @@ export default function Home() {
       // Extract pressure (example: replace with actual field from API)
       const pressureValue =
         data.properties.periods[0].detailedForecast.includes("pressure")
-          ? "1013 hPa" // Replace with actual pressure field
-          : "1016.50 mb"; // Example value
+          ? "1016.50 mb" // Replace with actual pressure field
+          : "1021.1 mb"; // Example value
       setPressure(pressureValue);
 
       // Extract actively raining (example: replace with actual field from API)
@@ -105,7 +116,8 @@ export default function Home() {
               <span>{loading ? "Loading..." : isRaining}</span>
             </div>
             <div className="text-lg">
-              <strong>Prediction:</strong> <span>Rain stopping soon.</span>
+              <strong>Prediction:</strong>{" "}
+              <span>{loading ? "Loading..." : getPrediction(pressure)}</span>
             </div>
           </div>
         </div>
