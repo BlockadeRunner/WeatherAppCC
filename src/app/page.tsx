@@ -8,11 +8,11 @@ export default function Home() {
   const [isRaining, setIsRaining] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // // Function to toggle isRaining state
-  // const toggleIsRaining = () => {
-  //   console.log("Toggling isRaining state...");
-  //   setIsRaining((prev) => (prev === "Yes" ? "No" : "Yes"));
-  // };
+  // Function to toggle isRaining state
+  const toggleIsRaining = () => {
+    console.log("Toggling isRaining state...");
+    setIsRaining((prev) => (prev === "Yes" ? "No" : "Yes"));
+  };
 
   // Function to determine prediction based on pressure
   const getPrediction = (pressure: string | null): string => {
@@ -120,6 +120,18 @@ export default function Home() {
               <span>{loading ? "Loading..." : getPrediction(pressure)}</span>
             </div>
           </div>
+        </div>
+
+        {/* Toggle Switch for Development */}
+        <div className="absolute bottom-4 right-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-purple-500 border-4">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={isRaining === "Yes"}
+              onChange={toggleIsRaining} // Call the toggleIsRaining function
+            />
+            <span>Toggle Raining</span>
+          </label>
         </div>
       </div>
     </main>
