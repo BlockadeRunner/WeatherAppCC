@@ -8,6 +8,11 @@ export default function Home() {
   const [isRaining, setIsRaining] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Function to toggle isRaining state
+  const toggleIsRaining = () => {
+    setIsRaining((prev) => (prev === "Yes" ? "No" : "Yes"));
+  };
+
   useEffect(() => {
     async function fetchWeather() {
       try {
@@ -37,7 +42,6 @@ export default function Home() {
           ? "Yes"
           : "No";
         setIsRaining(raining);
-        setIsRaining("No");
       } catch (error) {
         console.error("Error fetching weather data:", error);
         setTemperature("N/A");
@@ -49,6 +53,12 @@ export default function Home() {
     }
 
     fetchWeather();
+  }, []);
+
+  // useEffect to call toggleIsRaining every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(toggleIsRaining, 10000);
+    return () => clearInterval(interval); // Cleanup interval on component unmount
   }, []);
 
   return (
