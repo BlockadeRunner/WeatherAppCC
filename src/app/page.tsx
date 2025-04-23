@@ -1,45 +1,76 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 export default function Home() {
+  const [temperature, setTemperature] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchWeather() {
+      try {
+        const response = await fetch(
+          "https://api.weather.gov/gridpoints/AKQ/37,57/forecast"
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch weather data");
+        }
+        const data = await response.json();
+        const temp = data.properties.periods[0].temperature;
+        setTemperature(`${temp}°F`);
+      } catch (error) {
+        console.error("Error fetching weather data:", error);
+        setTemperature("N/A");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchWeather();
+  }, []);
+
   return (
     // Main Background
     <main className="flex flex-col h-screen w-screen">
       {/* Header Bar */}
-      <div className="flex flex-row w-full h-[18%] md:h-[20%] lg:h-[20%] items-center justify-center bg-white"></div>
+      <div className="flex flex-row w-full h-[20%] md:h-[20%] lg:h-[20%] items-center justify-center bg-gradient-to-r from-yellow-500 via-blue-500 to-gray-500">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-shadow-lg">
+          Storm-Sync Weather
+        </h1>
+      </div>
 
       {/* background gifs */}
-      <div className="flex flex-row w-full h-full items-center justify-center">
+      <div className="flex flex-grow w-full">
         <div
           className="flex h-full w-full items-center justify-center"
           style={{
             backgroundImage: "url('/res/storm.gif')",
             backgroundSize: "contain",
             backgroundRepeat: "repeat",
-            backgroundPosition: "center",
+            backgroundPosition: "top left",
           }}
         ></div>
-        {/* <div
-          className="flex h-full w-full items-center justify-center"
-          style={{
-            backgroundImage: "url('/res/storm.gif')",
-            backgroundSize: "contain",
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "center",
-          }}
-        ></div> */}
+
+        {/* Weather Info Box */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-gray-300 bg-opacity-80 rounded-lg shadow-lg p-8 text-center max-w-sm">
+            <h2 className="text-xl font-bold mb-4">Current Weather</h2>
+            <div className="text-lg mb-2">
+              <strong>Temperature:</strong>{" "}
+              <span>{loading ? "Loading..." : temperature}</span>
+            </div>
+            <div className="text-lg mb-2">
+              <strong>Pressure:</strong> <span>1013 hPa</span>
+            </div>
+            <div className="text-lg mb-2">
+              <strong>Actively Raining:</strong> <span>No</span>
+            </div>
+            <div className="text-lg">
+              <strong>Prediction:</strong> <span>Rain stopping soon.</span>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
-    // <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-    //   <h1 className="text-2xl font-bold">Weather App</h1>
-    //   <div className="flex flex-col gap-4 text-center sm:text-left">
-    //     <div className="text-lg">
-    //       <strong>Temperature:</strong> <span>25°C</span>
-    //     </div>
-    //     <div className="text-lg">
-    //       <strong>Pressure:</strong> <span>1013 hPa</span>
-    //     </div>
-    //     <div className="text-lg">
-    //       <strong>Actively Raining:</strong> <span>No</span>
-    //     </div>
-    //   </div>
-    // </div>
   );
 }
