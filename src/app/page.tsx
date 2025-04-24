@@ -102,20 +102,22 @@ export default function Home() {
         {/* Weather Info Box */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="bg-gray-100 bg-opacity-80 rounded-lg shadow-lg p-8 text-center max-w-sm border-blue-500 border-4 dark:text-black">
-            <h2 className="text-xl font-bold mb-4">Current Weather</h2>
-            <div className="text-lg mb-2">
+            <h2 className="text-xl font-bold mb-4 dark:text-black">
+              Current Weather
+            </h2>
+            <div className="text-lg mb-2 dark:text-black">
               <strong>Temperature:</strong>{" "}
               <span>{loading ? "Loading..." : temperature}</span>
             </div>
-            <div className="text-lg mb-2">
+            <div className="text-lg mb-2 dark:text-black">
               <strong>Pressure:</strong>{" "}
               <span>{loading ? "Loading..." : pressure}</span>
             </div>
-            <div className="text-lg mb-2">
+            <div className="text-lg mb-2 dark:text-black">
               <strong>Actively Raining:</strong>{" "}
               <span>{loading ? "Loading..." : isRaining}</span>
             </div>
-            <div className="text-lg">
+            <div className="text-lg dark:text-black">
               <strong>Prediction:</strong>{" "}
               <span>{loading ? "Loading..." : getPrediction(pressure)}</span>
             </div>
@@ -124,7 +126,7 @@ export default function Home() {
 
         {/* Toggle Switch for Development */}
         <div className="absolute bottom-4 right-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-purple-500 border-4">
-          <label className="flex items-center space-x-2">
+          <label className="flex items-center space-x-2 dark:text-black">
             <input
               type="checkbox"
               checked={isRaining === "Yes"}
