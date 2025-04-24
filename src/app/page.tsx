@@ -2,12 +2,21 @@
 
 import { useEffect, useState } from "react";
 
+import { GoogleGenAI } from "@google/genai";
+
+const gem_key = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+const ai = new GoogleGenAI({
+  apiKey: gem_key,
+});
+
 export default function Home() {
   const [temperature, setTemperature] = useState<string | null>(null);
   const [pressure, setPressure] = useState<string | null>(null);
   const [isRaining, setIsRaining] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isNight, setIsNight] = useState(false);
+  const [prediction, setPrediction] = useState<string | null>(null);
 
   // Function to toggle isRaining state
   const toggleIsRaining = () => {
@@ -20,6 +29,28 @@ export default function Home() {
     console.log("Toggling isNight state...");
     setIsNight((prev) => !prev);
   };
+
+  async function predictWithAI(previous_data: string): Promise<void> {
+    // FAKE TEST DATA
+    previous_data =
+      "[Temperature: 75°F, Pressure: 1015.2 mb, Raining: No, Time: 14:00] [Temperature: 74°F, Pressure: 1010.3 mb, Raining: No, Time: 15:00] [Temperature: 72°F, Pressure: 1005.7 mb, Raining: No, Time: 16:00] [Temperature: 71°F, Pressure: 999.2 mb, Raining: No, Time: 17:00] [Temperature: 70°F, Pressure: 996.1 mb, Raining: No, Time: 17:00]";
+    // END FAKE TEST DATA
+
+    console.log("Generating AI content with previous data:", previous_data);
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash-lite",
+        contents:
+          "Provide a short weather prediction based on the following data from the past 5 hours: " +
+          previous_data,
+      });
+      const prediction = response.text ?? "Error generating AI content."; // Ensure a fallback string is used
+      setPrediction(prediction); // Update the state with the prediction
+    } catch (error) {
+      console.error("Error generating AI content:", error);
+      setPrediction("Error generating AI response."); // Update the state with an error message
+    }
+  }
 
   // Function to determine prediction based on pressure
   const getPrediction = (pressure: string | null): string => {
@@ -35,6 +66,7 @@ export default function Home() {
   // Function to fetch weather data
   const fetchWeather = async () => {
     console.log("Fetching weather data...");
+
     try {
       const response = await fetch(
         "https://api.weather.gov/gridpoints/AKQ/73,68/forecast/hourly"
@@ -86,6 +118,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+    //predictWithAI("INPUT DATA HERE");
   };
 
   // useEffect to fetch weather data on mount and every 10 seconds
@@ -142,7 +175,7 @@ export default function Home() {
             </div>
             <div className="text-lg dark:text-black">
               <strong>Prediction:</strong>{" "}
-              <span>{loading ? "Loading..." : getPrediction(pressure)}</span>
+              <span>{loading ? "Loading..." : prediction}</span>
             </div>
           </div>
         </div>
