@@ -64,23 +64,19 @@ export default function Home() {
       // Extract current time
       const currentTime = data.properties.periods[0].startTime;
       if (currentTime.length > 12) {
-        const eleventhCharacter = currentTime[11];
-        const twelfthCharacter = currentTime[12];
-        console.log("TESTING 11th character: " + eleventhCharacter);
-        console.log("TESTING 12th character: " + twelfthCharacter);
-        if (
-          eleventhCharacter !== "0" &&
-          twelfthCharacter >= "9" &&
-          isRaining === "No"
-        ) {
-          setIsNight(true); // Set isNight based on the hour
-        } else if (eleventhCharacter === "0" && twelfthCharacter < "7") {
-          setIsNight(true); // Set isNight based on the hour
+        const hour = parseInt(currentTime.slice(11, 13), 10); // Extract and parse the hour as an integer
+
+        if (!isNaN(hour) && raining === "No") {
+          if (hour >= 19 || hour < 7) {
+            setIsNight(true); // Set isNight to true for 7 PM to 7 AM
+          } else {
+            setIsNight(false); // Set isNight to false for other times
+          }
         } else {
-          setIsNight(false); // Set isNight based on the hour
+          console.log("Error: Invalid hour or raining status.");
         }
       } else {
-        console.log("Error in currentTime format recieved from API");
+        console.log("Error in currentTime format received from API");
       }
     } catch (error) {
       console.error("Error fetching weather data:", error);
