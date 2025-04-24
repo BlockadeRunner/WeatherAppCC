@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { initializeFirestore, getAll, getMostRecent } from "@/database/firebase";
 
 export default function Home() {
   const [temperature, setTemperature] = useState<string | null>(null);
@@ -36,6 +37,14 @@ export default function Home() {
   const fetchWeather = async () => {
     console.log("Fetching weather data...");
     try {
+      
+      //Initialize Firestore database access
+      const db = initializeFirestore();
+
+      //Get the most recent data entry
+      //TODO hook this into something
+      getMostRecent(db);
+
       const response = await fetch(
         "https://api.weather.gov/gridpoints/AKQ/73,68/forecast/hourly"
       );
