@@ -7,11 +7,18 @@ export default function Home() {
   const [pressure, setPressure] = useState<string | null>(null);
   const [isRaining, setIsRaining] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isNight, setIsNight] = useState(false);
 
   // Function to toggle isRaining state
   const toggleIsRaining = () => {
     console.log("Toggling isRaining state...");
     setIsRaining((prev) => (prev === "Yes" ? "No" : "Yes"));
+  };
+
+  // Function to toggle isNight state
+  const toggleIsNight = () => {
+    console.log("Toggling isNight state...");
+    setIsNight((prev) => !prev);
   };
 
   // Function to determine prediction based on pressure
@@ -41,18 +48,40 @@ export default function Home() {
       const temp = data.properties.periods[0].temperature;
       setTemperature(`${temp}°F`);
 
-      // Extract pressure (example: replace with actual field from API)
+      // Extract pressure
       const pressureValue =
         data.properties.periods[0].detailedForecast.includes("pressure")
           ? "1016.50 mb" // Replace with actual pressure field
           : "1021.1 mb"; // Example value
       setPressure(pressureValue);
 
-      // Extract actively raining (example: replace with actual field from API)
+      // Extract actively raining
       const raining = data.properties.periods[0].shortForecast.includes("Rain")
         ? "Yes"
         : "No";
       setIsRaining(raining);
+
+      // Extract current time
+      const currentTime = data.properties.periods[0].startTime;
+      if (currentTime.length > 12) {
+        const eleventhCharacter = currentTime[11];
+        const twelfthCharacter = currentTime[12];
+        console.log("TESTING 11th character: " + eleventhCharacter);
+        console.log("TESTING 12th character: " + twelfthCharacter);
+        if (
+          eleventhCharacter !== "0" &&
+          twelfthCharacter >= "9" &&
+          isRaining === "No"
+        ) {
+          setIsNight(true); // Set isNight based on the hour
+        } else if (eleventhCharacter === "0" && twelfthCharacter < "7") {
+          setIsNight(true); // Set isNight based on the hour
+        } else {
+          setIsNight(false); // Set isNight based on the hour
+        }
+      } else {
+        console.log("Error in currentTime format recieved from API");
+      }
     } catch (error) {
       console.error("Error fetching weather data:", error);
       setTemperature("N/A");
@@ -66,15 +95,9 @@ export default function Home() {
   // useEffect to fetch weather data on mount and every 10 seconds
   useEffect(() => {
     fetchWeather(); // Initial fetch
-    const interval = setInterval(fetchWeather, 10000); // Fetch every 10 seconds
+    const interval = setInterval(fetchWeather, 15000); // Fetch every 10 seconds
     return () => clearInterval(interval); // Cleanup interval on component unmount
   }, []);
-
-  // // useEffect to call toggleIsRaining every 10 seconds
-  // useEffect(() => {
-  //   const interval = setInterval(toggleIsRaining, 5000);
-  //   return () => clearInterval(interval); // Cleanup interval on component unmount
-  // }, []);
 
   return (
     <main className="flex flex-col h-screen w-screen">
@@ -91,7 +114,11 @@ export default function Home() {
           className="flex h-full w-full items-center justify-center"
           style={{
             backgroundImage: `url('/res/${
-              isRaining === "Yes" ? "storm.gif" : "sunny.gif"
+              isRaining === "Yes"
+                ? "storm.gif"
+                : isNight
+                ? "night.gif"
+                : "sunny.gif"
             }')`,
             backgroundSize: "contain",
             backgroundRepeat: "repeat",
@@ -133,6 +160,18 @@ export default function Home() {
               onChange={toggleIsRaining} // Call the toggleIsRaining function
             />
             <span>Toggle Raining</span>
+          </label>
+        </div>
+
+        {/* Toggle Switch for Development */}
+        <div className="absolute bottom-20 right-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-purple-500 border-4">
+          <label className="flex items-center space-x-2 dark:text-black">
+            <input
+              type="checkbox"
+              checked={isNight === true}
+              onChange={toggleIsNight} // Call the toggleIsRaining function
+            />
+            <span>Toggle Night</span>
           </label>
         </div>
       </div>
