@@ -31,9 +31,13 @@ export async function getAll(db: any) {
   const querySnapshot = await getDocs(
     query(collection(db, "WeatherData"), orderBy("Time", "desc"))
   );
+
+  const data: any[] = [];
   querySnapshot.forEach((doc: any) => {
-    //console.log(doc.id, " => ", doc.data());
+    data.push(doc.data()); // Collect each document's data into the array
   });
+
+  return data; // Return the array of data
 }
 
 export async function getMostRecent(db: any) {

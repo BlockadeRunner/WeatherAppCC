@@ -36,32 +36,88 @@ export default function Home() {
 
   async function predictWithAI(previous_data: string): Promise<void> {
     // FAKE TEST DATA
-    previous_data =
-      "[Temperature: 75°F, Pressure: 1015.2 mb, Raining: No, Time: 14:00] [Temperature: 74°F, Pressure: 1010.3 mb, Raining: No, Time: 15:00] [Temperature: 72°F, Pressure: 1005.7 mb, Raining: No, Time: 16:00] [Temperature: 71°F, Pressure: 999.2 mb, Raining: No, Time: 17:00] [Temperature: 70°F, Pressure: 996.1 mb, Raining: No, Time: 17:00]";
+    //previous_data =
+    //"[Temperature: 75°F, Pressure: 1015.2 mb, Raining: No, Time: 14:00] [Temperature: 74°F, Pressure: 1010.3 mb, Raining: No, Time: 15:00] [Temperature: 72°F, Pressure: 1005.7 mb, Raining: No, Time: 16:00] [Temperature: 71°F, Pressure: 999.2 mb, Raining: No, Time: 17:00] [Temperature: 70°F, Pressure: 996.1 mb, Raining: No, Time: 17:00]";
     // END FAKE TEST DATA
 
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash-lite",
-        contents:
-          "Provide a one sentence weather prediction on whether clear weather, mixed weather, or a storm is likely based on the following data from the past 5 hours: " +
-          previous_data,
-      });
-      const prediction = response.text ?? "Error generating AI content."; // Ensure a fallback string is used
-      setPrediction(prediction); // Update the state with the prediction
-    } catch (error) {
-      console.error("Error generating AI content:", error);
-      setPrediction("Error generating AI response."); // Update the state with an error message
+    console.log("Previous data for AI:", previous_data); // Log the previous data
+
+    // try {
+    //   const response = await ai.models.generateContent({
+    //     model: "gemini-2.0-flash-lite",
+    //     contents:
+    //       "Provide a one sentence weather prediction on whether clear weather, mixed weather, or a storm is likely based on the following data from the past 5 hours: " +
+    //       previous_data,
+    //   });
+    //   const prediction = response.text ?? "Error generating AI content."; // Ensure a fallback string is used
+    //   setPrediction(prediction); // Update the state with the prediction
+    // } catch (error) {
+    //   console.error("Error generating AI content:", error);
+    //   setPrediction("Error generating AI response."); // Update the state with an error message
+    // }
+  }
+
+  // Function to process weather data from past 3 hours and format it into a string for the AI model
+  async function processWeatherData(all_data: any[]): Promise<string> {
+    // Step 1: Sort the data by time (most recent first)
+    all_data.sort((a, b) => b.Time.seconds - a.Time.seconds);
+
+    // Step 2: Group data by hour
+    const groupedByHour: Record<number, any[]> = {};
+    const currentTime = new Date();
+    all_data.forEach((entry) => {
+      const entryDate = new Date(entry.Time.seconds * 1000); // Convert Firestore Timestamp to Date
+      const hourDifference = Math.floor(
+        (currentTime.getTime() - entryDate.getTime()) / (1000 * 60 * 60)
+      );
+      if (hourDifference < 3) {
+        // Only consider data from the past 3 hours
+        if (!groupedByHour[hourDifference]) {
+          groupedByHour[hourDifference] = [];
+        }
+        groupedByHour[hourDifference].push(entry);
+      }
+    });
+
+    // Step 3: Select two instances per hour
+    const selectedInstances: any[] = [];
+    for (let hour = 0; hour < 3; hour++) {
+      if (groupedByHour[hour]) {
+        selectedInstances.push(...groupedByHour[hour].slice(0, 2)); // Take up to 2 instances per hour
+      }
     }
+
+    // Step 4: Check if we have fewer than 6 instances
+    if (selectedInstances.length < 6) {
+      console.warn(
+        `Insufficient data from the last 3 hours. Falling back to the most recent 6 instances.`
+      );
+      selectedInstances.length = 0; // Clear the array
+      selectedInstances.push(...all_data.slice(0, 6)); // Take the most recent 6 instances
+    }
+
+    // Step 5: Format the data into a string
+    const formattedData = selectedInstances
+      .map((entry) => {
+        const temperatureF = (entry.Temperature * 9) / 5 + 32; // Convert °C to °F
+        const pressure = entry.Pressure;
+        const wetness = entry["Wetness Value"] > 100 ? "Yes" : "No";
+        const time = new Date(entry.Time.seconds * 1000).toLocaleTimeString(
+          [],
+          { hour: "2-digit", minute: "2-digit" }
+        );
+        return `[Temperature: ${temperatureF.toFixed(
+          1
+        )}°F, Pressure: ${pressure} mb, Raining: ${wetness}, Time: ${time}]`;
+      })
+      .join(" ");
+
+    return formattedData;
   }
 
   // Function to fetch weather data
   async function fetchWeather(): Promise<void> {
     console.log("Fetching weather data...");
-
-    // MOVE THIS BELOW //////////////
-    predictWithAI("INPUT DATA HERE");
-    /////////////////////////////////
 
     // Track hardware fetch success
     let successfulFetch: boolean = false; // Flag to track if the fetch was successful
@@ -70,19 +126,22 @@ export default function Home() {
       const db = initializeFirestore();
 
       // Fetch the most recent data from Firestore
-      const testing_data = await getMostRecent(db);
+      const recent_data = await getMostRecent(db);
+
+      // Fetch all data from Firestore for AI prediction
+      const all_data = await getAll(db); // Fetch all data for testing
 
       // Accessing the values
-      if (testing_data) {
-        const pressure = testing_data.Pressure; // Pressure in mb
-        const temperature = (testing_data.Temperature * 9) / 5 + 32; // Temperature in °C converted to °F
-        const time = testing_data.Time; // Firestore Timestamp object
-        const wetnessValue = testing_data["Wetness Value"]; // 0 dry, 1000 wet
+      if (recent_data) {
+        const pressure = recent_data.Pressure; // Pressure in mb
+        const temperature = (recent_data.Temperature * 9) / 5 + 32; // Temperature in °C converted to °F
+        const time = recent_data.Time; // Firestore Timestamp object
+        const wetnessValue = recent_data["Wetness Value"]; // 0 dry, 1000 wet
 
         // Convert the Firestore Timestamp to a JavaScript Date object
         const date = new Date(time.seconds * 1000); // Convert seconds to milliseconds
         const hours = date.getHours(); // Returns the hour (0-23)
-        const minutes = date.getMinutes(); // Returns the minute (0-59)
+        //const minutes = date.getMinutes(); // Returns the minute (0-59)
 
         // console.log("Pressure:", pressure);
         // console.log("Temperature:", temperature);
@@ -110,6 +169,9 @@ export default function Home() {
 
         // Retrieved database data successfully
         successfulFetch = true; // Set the flag to true if fetch is successful
+
+        let previous_data = await processWeatherData(all_data); // Process the weather data for AI prediction
+        predictWithAI(previous_data); // Call the AI prediction function with the processed data
       } else {
         console.error("Error: testing_data is null.");
       }
