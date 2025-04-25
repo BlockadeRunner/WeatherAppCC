@@ -195,7 +195,7 @@ export default function Home() {
         {/* AI Disclosure */}
         <div className="absolute bottom-4 left-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-green-500 border-4">
           <label className="flex items-center space-x-2 dark:text-black">
-            <span>AI Content Powered by: Google's Gemini 2.0 flash</span>
+            <span>AI Content Powered by: Google&apos;s Gemini 2.0 flash</span>
           </label>
         </div>
       </div>
