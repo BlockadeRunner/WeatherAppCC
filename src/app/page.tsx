@@ -86,7 +86,7 @@ export default function Home() {
         const response = await ai.models.generateContent({
           model: "gemini-2.0-flash-lite",
           contents:
-            "Provide a one sentence weather prediction on whether clear weather, mixed weather, or a storm is likely based on the following data from the past few hours: " +
+            "In the style of a weather reporter, provide a one sentence weather prediction on what kind of weather is likely based on the following data from the past few hours:" +
             previous_data,
         });
 
