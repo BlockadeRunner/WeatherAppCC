@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { GoogleGenAI } from "@google/genai";
+import {
+  initializeFirestore,
+  getAll,
+  getMostRecent,
+} from "@/database/firebase";
 
 const gem_key = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
@@ -19,16 +23,16 @@ export default function Home() {
   const [prediction, setPrediction] = useState<string | null>(null);
 
   // Function to toggle isRaining state
-  const toggleIsRaining = () => {
+  function toggleIsRaining(): void {
     console.log("Toggling isRaining state...");
     setIsRaining((prev) => (prev === "Yes" ? "No" : "Yes"));
-  };
+  }
 
   // Function to toggle isNight state
-  const toggleIsNight = () => {
+  function toggleIsNight(): void {
     console.log("Toggling isNight state...");
     setIsNight((prev) => !prev);
-  };
+  }
 
   async function predictWithAI(previous_data: string): Promise<void> {
     // FAKE TEST DATA
@@ -52,67 +56,136 @@ export default function Home() {
   }
 
   // Function to fetch weather data
-  const fetchWeather = async () => {
+  async function fetchWeather(): Promise<void> {
     console.log("Fetching weather data...");
+
+    // MOVE THIS BELOW //////////////
     predictWithAI("INPUT DATA HERE");
+    /////////////////////////////////
 
+    // Track hardware fetch success
+    let successfulFetch: boolean = false; // Flag to track if the fetch was successful
     try {
-      const response = await fetch(
-        "https://api.weather.gov/gridpoints/AKQ/73,68/forecast/hourly"
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch weather data");
-      }
-      const data = await response.json();
+      // Initialize Firestore database access
+      const db = initializeFirestore();
 
-      // Extract temperature
-      const temp = data.properties.periods[0].temperature;
-      setTemperature(`${temp}°F`);
+      // Fetch the most recent data from Firestore
+      const testing_data = await getMostRecent(db);
 
-      // Extract pressure
-      const pressureValue =
-        data.properties.periods[0].detailedForecast.includes("pressure")
-          ? "1016.50 mb" // Replace with actual pressure field
-          : "1021.1 mb"; // Example value
-      setPressure(pressureValue);
+      // Accessing the values
+      if (testing_data) {
+        const pressure = testing_data.Pressure; // Pressure in mb
+        const temperature = (testing_data.Temperature * 9) / 5 + 32; // Temperature in °C converted to °F
+        const time = testing_data.Time; // Firestore Timestamp object
+        const wetnessValue = testing_data["Wetness Value"]; // 0 dry, 1000 wet
 
-      // Extract actively raining
-      const raining = data.properties.periods[0].shortForecast.includes("Rain")
-        ? "Yes"
-        : "No";
-      setIsRaining(raining);
+        // Convert the Firestore Timestamp to a JavaScript Date object
+        const date = new Date(time.seconds * 1000); // Convert seconds to milliseconds
+        const hours = date.getHours(); // Returns the hour (0-23)
+        const minutes = date.getMinutes(); // Returns the minute (0-59)
 
-      // Extract current time
-      const currentTime = data.properties.periods[0].startTime;
-      if (currentTime.length > 12) {
-        const hour = parseInt(currentTime.slice(11, 13), 10); // Extract and parse the hour as an integer
+        // console.log("Pressure:", pressure);
+        // console.log("Temperature:", temperature);
+        // console.log(`Hour: ${hours}, Minute: ${minutes}`);
+        // console.log("Wetness Value:", wetnessValue);
 
-        if (!isNaN(hour) && raining === "No") {
-          if (hour >= 19 || hour < 7) {
+        // Update the state with the fetched data
+        setTemperature(`${temperature}°F`); // Set temperature state
+        setPressure(`${pressure} mb`); // Set pressure state
+        setIsRaining(wetnessValue > 100 ? "Yes" : "No"); // Set isRaining state based on wetness value
+        let raining = wetnessValue > 100 ? "Yes" : "No"; // Set raining variable based on wetness value
+
+        // Update background animations based on weather and time
+        if (!isNaN(hours) && raining === "No") {
+          if (hours >= 19 || hours < 7) {
             setIsNight(true); // Set isNight to true for 7 PM to 7 AM
           } else {
             setIsNight(false); // Set isNight to false for other times
           }
+        } else if (!isNaN(hours) && raining === "Yes") {
+          console.log("Raining is true, setting isNight to false.");
         } else {
-          console.log("Error: Invalid hour or raining status.");
+          console.log("Error: Invalid hour or raining status from hardware.");
         }
+
+        // Retrieved database data successfully
+        successfulFetch = true; // Set the flag to true if fetch is successful
       } else {
-        console.log("Error in currentTime format received from API");
+        console.error("Error: testing_data is null.");
       }
     } catch (error) {
-      console.error("Error fetching weather data:", error);
+      console.error("Error fetching weather data from hardware:", error);
       setTemperature("N/A");
       setPressure("N/A");
       setIsRaining("N/A");
     } finally {
-      setLoading(false);
+      setLoading(false); // Set loading to false after attempting to fetch data
     }
-  };
 
-  // useEffect to fetch weather data on mount and every 10 seconds
+    // If hardware fetch was not successful, proceed to fetch from the National Weather Service API
+    if (!successfulFetch) {
+      try {
+        const response = await fetch(
+          "https://api.weather.gov/gridpoints/AKQ/73,68/forecast/hourly"
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch weather data");
+        }
+        const data = await response.json();
+
+        // Extract temperature
+        const temp = data.properties.periods[0].temperature;
+        setTemperature(`${temp}°F`);
+
+        // Extract pressure
+        const pressureValue =
+          data.properties.periods[0].detailedForecast.includes("pressure")
+            ? "1016.50 mb" // Replace with actual pressure field
+            : "1021.1 mb"; // Example value
+        setPressure(pressureValue);
+
+        // Extract actively raining
+        const raining = data.properties.periods[0].shortForecast.includes(
+          "Rain"
+        )
+          ? "Yes"
+          : "No";
+        setIsRaining(raining);
+
+        // Extract current time
+        const currentTime = data.properties.periods[0].startTime;
+        if (currentTime.length > 12) {
+          const hour = parseInt(currentTime.slice(11, 13), 10); // Extract and parse the hour as an integer
+
+          if (!isNaN(hour) && raining === "No") {
+            if (hour >= 19 || hour < 7) {
+              setIsNight(true); // Set isNight to true for 7 PM to 7 AM
+            } else {
+              setIsNight(false); // Set isNight to false for other times
+            }
+          } else if (!isNaN(hour) && raining === "Yes") {
+            console.log("Raining is true, setting isNight to false.");
+          } else {
+            console.log("Error: Invalid hour or raining status from hardware.");
+          }
+        } else {
+          console.log("Error in currentTime format received from API");
+        }
+      } catch (error) {
+        console.error("Error fetching weather data:", error);
+        setTemperature("N/A");
+        setPressure("N/A");
+        setIsRaining("N/A");
+      } finally {
+        setLoading(false);
+      }
+    }
+  }
+
+  // useEffect to fetch weather data on mount and every 15 seconds
   useEffect(() => {
     fetchWeather(); // Initial fetch
-    const interval = setInterval(fetchWeather, 15000); // Fetch every 10 seconds
+    const interval = setInterval(fetchWeather, 15000); // Fetch every 15 seconds
     return () => clearInterval(interval); // Cleanup interval on component unmount
   }, []);
 
