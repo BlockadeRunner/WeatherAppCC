@@ -51,17 +51,6 @@ export default function Home() {
     }
   }
 
-  // Function to determine prediction based on pressure
-  const getPrediction = (pressure: string | null): string => {
-    if (!pressure || pressure === "N/A") return "Unable to determine.";
-    const pressureValue = parseFloat(pressure); // Convert pressure to a number
-    if (pressureValue < 1000) return "Stormy/Bad Weather Likely";
-    if (pressureValue >= 1000 && pressureValue <= 1020)
-      return "Mixed or Changing Weather";
-    if (pressureValue > 1020) return "Clear/Fair Weather Likely";
-    return "Unable to determine.";
-  };
-
   // Function to fetch weather data
   const fetchWeather = async () => {
     console.log("Fetching weather data...");
@@ -200,6 +189,13 @@ export default function Home() {
               onChange={toggleIsNight} // Call the toggleIsRaining function
             />
             <span>Toggle Night</span>
+          </label>
+        </div>
+
+        {/* AI Disclosure */}
+        <div className="absolute bottom-4 left-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-green-500 border-4">
+          <label className="flex items-center space-x-2 dark:text-black">
+            <span>AI Content Powered by: Google's Gemini 2.0 flash</span>
           </label>
         </div>
       </div>
