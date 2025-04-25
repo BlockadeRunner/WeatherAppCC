@@ -36,12 +36,11 @@ export default function Home() {
       "[Temperature: 75°F, Pressure: 1015.2 mb, Raining: No, Time: 14:00] [Temperature: 74°F, Pressure: 1010.3 mb, Raining: No, Time: 15:00] [Temperature: 72°F, Pressure: 1005.7 mb, Raining: No, Time: 16:00] [Temperature: 71°F, Pressure: 999.2 mb, Raining: No, Time: 17:00] [Temperature: 70°F, Pressure: 996.1 mb, Raining: No, Time: 17:00]";
     // END FAKE TEST DATA
 
-    console.log("Generating AI content with previous data:", previous_data);
     try {
       const response = await ai.models.generateContent({
         model: "gemini-2.0-flash-lite",
         contents:
-          "Provide a short weather prediction based on the following data from the past 5 hours: " +
+          "Provide a one sentence weather prediction on whether clear weather, mixed weather, or a storm is likely based on the following data from the past 5 hours: " +
           previous_data,
       });
       const prediction = response.text ?? "Error generating AI content."; // Ensure a fallback string is used
@@ -66,6 +65,7 @@ export default function Home() {
   // Function to fetch weather data
   const fetchWeather = async () => {
     console.log("Fetching weather data...");
+    predictWithAI("INPUT DATA HERE");
 
     try {
       const response = await fetch(
@@ -118,7 +118,6 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-    //predictWithAI("INPUT DATA HERE");
   };
 
   // useEffect to fetch weather data on mount and every 10 seconds
@@ -174,7 +173,7 @@ export default function Home() {
               <span>{loading ? "Loading..." : isRaining}</span>
             </div>
             <div className="text-lg dark:text-black">
-              <strong>Prediction:</strong>{" "}
+              <strong>AI-Powered Prediction:</strong>{" "}
               <span>{loading ? "Loading..." : prediction}</span>
             </div>
           </div>
