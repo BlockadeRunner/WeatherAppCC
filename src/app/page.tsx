@@ -1,20 +1,48 @@
+/////////////////////////////////////////////
+//     Cloud Computing Final Project:      //
+//        Storm-Sync Weather App           //
+//                                         //
+//   File: page.tsx                        //
+//   Author: Alex Longo                    //
+//   Date: 4/25/2025                       //
+//   Description: This file contains the   //
+//   main component for the Storm-Sync     //
+//   Weather App. It fetches weather data  //
+//   from a hardware device and uses AI    //
+//   to generate predictions based on the  //
+//   data. The app displays the current    //
+//   weather conditions and the AI's       //
+//   prediction. It also includes a toggle //
+//   switch for development purposes to    //
+//  simulate different weather conditions. //
+/////////////////////////////////////////////
+
 "use client";
 
+// import necessary libraries and components
 import { useEffect, useState } from "react";
 import { GoogleGenAI } from "@google/genai";
 import {
   initializeFirestore,
   getAll,
   getMostRecent,
+  WeatherData,
+  getPredictionForHour,
+  updatePredictionForHour,
 } from "@/database/firebase";
+import { Timestamp } from "firebase/firestore";
 
+// pull the API key from environment variables (NOTE: MAJOR SECURITY RISK! WOULD NOT DO THIS IN PRODUCTION!)
 const gem_key = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
+// Define the GoogleGenAI instance with the API key
 const ai = new GoogleGenAI({
   apiKey: gem_key,
 });
 
+// Export and define the main webpage component
 export default function Home() {
+  // Local state variables to manage weather data and loading state
   const [temperature, setTemperature] = useState<string | null>(null);
   const [pressure, setPressure] = useState<string | null>(null);
   const [isRaining, setIsRaining] = useState<string | null>(null);
@@ -34,36 +62,59 @@ export default function Home() {
     setIsNight((prev) => !prev);
   }
 
-  async function predictWithAI(previous_data: string): Promise<void> {
-    // FAKE TEST DATA
-    //previous_data =
-    //"[Temperature: 75°F, Pressure: 1015.2 mb, Raining: No, Time: 14:00] [Temperature: 74°F, Pressure: 1010.3 mb, Raining: No, Time: 15:00] [Temperature: 72°F, Pressure: 1005.7 mb, Raining: No, Time: 16:00] [Temperature: 71°F, Pressure: 999.2 mb, Raining: No, Time: 17:00] [Temperature: 70°F, Pressure: 996.1 mb, Raining: No, Time: 17:00]";
-    // END FAKE TEST DATA
+  // Function to fetch or generate a prediction based on weather data
+  async function fetchOrGeneratePrediction(
+    all_data: WeatherData[]
+  ): Promise<void> {
+    try {
+      // Check if a prediction exists for the current hour
+      const predictionStatus = await getPredictionForHour();
 
-    console.log("Previous data for AI:", previous_data); // Log the previous data
+      // Prediction status handling
+      if (predictionStatus !== "update_needed") {
+        // If a valid prediction exists, use it
+        console.log("Using existing prediction:", predictionStatus);
+        setPrediction(predictionStatus); // Use the existing prediction
+      } else {
+        // If no valid prediction exists, generate a new one
+        console.log("No valid prediction found. Generating a new one...");
 
-    // try {
-    //   const response = await ai.models.generateContent({
-    //     model: "gemini-2.0-flash-lite",
-    //     contents:
-    //       "Provide a one sentence weather prediction on whether clear weather, mixed weather, or a storm is likely based on the following data from the past 5 hours: " +
-    //       previous_data,
-    //   });
-    //   const prediction = response.text ?? "Error generating AI content."; // Ensure a fallback string is used
-    //   setPrediction(prediction); // Update the state with the prediction
-    // } catch (error) {
-    //   console.error("Error generating AI content:", error);
-    //   setPrediction("Error generating AI response."); // Update the state with an error message
-    // }
+        // Process weather data for AI input
+        const previous_data = await processWeatherData(all_data);
+
+        // Generate a new prediction using AI
+        const response = await ai.models.generateContent({
+          model: "gemini-2.0-flash-lite",
+          contents:
+            "Provide a one sentence weather prediction on whether clear weather, mixed weather, or a storm is likely based on the following data from the past few hours: " +
+            previous_data,
+        });
+
+        // Check if the response is valid
+        const newPrediction = response.text ?? "Error generating AI content.";
+        setPrediction(newPrediction); // Update the state with the new prediction
+
+        // Update the database with the new prediction
+        const timestamp = new Date(); // Use the current timestamp
+        await updatePredictionForHour(
+          Timestamp.fromDate(timestamp),
+          newPrediction
+        );
+        console.log("New prediction saved to the database:", newPrediction);
+      }
+    } catch (error) {
+      console.error("Error fetching or generating prediction:", error);
+      setPrediction("Error generating prediction.");
+    }
   }
 
   // Function to process weather data from past 3 hours and format it into a string for the AI model
-  async function processWeatherData(all_data: any[]): Promise<string> {
-    // Step 1: Sort the data by time (most recent first)
+  async function processWeatherData(all_data: WeatherData[]): Promise<string> {
+    // Sort the data by time (most recent first)
     all_data.sort((a, b) => b.Time.seconds - a.Time.seconds);
 
-    // Step 2: Group data by hour
-    const groupedByHour: Record<number, any[]> = {};
+    // Group data by hour
+    const groupedByHour: Record<number, WeatherData[]> = {};
     const currentTime = new Date();
     all_data.forEach((entry) => {
       const entryDate = new Date(entry.Time.seconds * 1000); // Convert Firestore Timestamp to Date
@@ -79,15 +130,15 @@ export default function Home() {
       }
     });
 
-    // Step 3: Select two instances per hour
-    const selectedInstances: any[] = [];
+    // Select two instances per hour
+    const selectedInstances: WeatherData[] = [];
     for (let hour = 0; hour < 3; hour++) {
       if (groupedByHour[hour]) {
         selectedInstances.push(...groupedByHour[hour].slice(0, 2)); // Take up to 2 instances per hour
       }
     }
 
-    // Step 4: Check if we have fewer than 6 instances
+    // Check if there are fewer than 6 instances
     if (selectedInstances.length < 6) {
       console.warn(
         `Insufficient data from the last 3 hours. Falling back to the most recent 6 instances.`
@@ -96,7 +147,7 @@ export default function Home() {
       selectedInstances.push(...all_data.slice(0, 6)); // Take the most recent 6 instances
     }
 
-    // Step 5: Format the data into a string
+    // Format the data into a string
     const formattedData = selectedInstances
       .map((entry) => {
         const temperatureF = (entry.Temperature * 9) / 5 + 32; // Convert °C to °F
@@ -135,24 +186,15 @@ export default function Home() {
       if (recent_data) {
         const pressure = recent_data.Pressure; // Pressure in mb
         const temperature = (recent_data.Temperature * 9) / 5 + 32; // Temperature in °C converted to °F
-        const time = recent_data.Time; // Firestore Timestamp object
         const wetnessValue = recent_data["Wetness Value"]; // 0 dry, 1000 wet
-
-        // Convert the Firestore Timestamp to a JavaScript Date object
-        const date = new Date(time.seconds * 1000); // Convert seconds to milliseconds
-        const hours = date.getHours(); // Returns the hour (0-23)
-        //const minutes = date.getMinutes(); // Returns the minute (0-59)
-
-        // console.log("Pressure:", pressure);
-        // console.log("Temperature:", temperature);
-        // console.log(`Hour: ${hours}, Minute: ${minutes}`);
-        // console.log("Wetness Value:", wetnessValue);
+        const time = new Date(recent_data.Time.seconds * 1000); // Convert Firestore Timestamp to Date
+        const hours = time.getHours(); // Returns the hour (0-23)
 
         // Update the state with the fetched data
         setTemperature(`${temperature}°F`); // Set temperature state
         setPressure(`${pressure} mb`); // Set pressure state
         setIsRaining(wetnessValue > 100 ? "Yes" : "No"); // Set isRaining state based on wetness value
-        let raining = wetnessValue > 100 ? "Yes" : "No"; // Set raining variable based on wetness value
+        const raining = wetnessValue > 100 ? "Yes" : "No"; // Set raining variable based on wetness value
 
         // Update background animations based on weather and time
         if (!isNaN(hours) && raining === "No") {
@@ -170,10 +212,10 @@ export default function Home() {
         // Retrieved database data successfully
         successfulFetch = true; // Set the flag to true if fetch is successful
 
-        let previous_data = await processWeatherData(all_data); // Process the weather data for AI prediction
-        predictWithAI(previous_data); // Call the AI prediction function with the processed data
+        // Fetch or generate prediction
+        await fetchOrGeneratePrediction(all_data); // Call the AI prediction function with the processed data
       } else {
-        console.error("Error: testing_data is null.");
+        console.error("Error: recent_data is null.");
       }
     } catch (error) {
       console.error("Error fetching weather data from hardware:", error);
@@ -251,6 +293,7 @@ export default function Home() {
     return () => clearInterval(interval); // Cleanup interval on component unmount
   }, []);
 
+  // Main webpage rendering
   return (
     <main className="flex flex-col h-screen w-screen">
       {/* Header Bar */}
@@ -314,7 +357,7 @@ export default function Home() {
           </label>
         </div>
 
-        {/* Toggle Switch for Development */}
+        {/* Toggle Switch for Development: Raining */}
         <div className="absolute bottom-4 right-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-purple-500 border-4 font-mono text-purple-600 text-sm md:text-base lg:text-base drop-shadow-[0_0_5px_rgba(128,0,128,0.8)]">
           <label className="flex items-center space-x-2">
             <input
@@ -326,7 +369,7 @@ export default function Home() {
           </label>
         </div>
 
-        {/* Toggle Switch for Development */}
+        {/* Toggle Switch for Development: Night*/}
         <div className="absolute bottom-20 right-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-purple-500 border-4 font-mono text-purple-600 text-sm md:text-base lg:text-base drop-shadow-[0_0_5px_rgba(128,0,128,0.8)]">
           <label className="flex items-center space-x-2">
             <input
