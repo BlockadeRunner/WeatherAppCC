@@ -145,32 +145,43 @@ export default function Home() {
 
         {/* Weather Info Box */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-gray-100 bg-opacity-80 rounded-lg shadow-lg p-8 text-center max-w-sm border-blue-500 border-4 dark:text-black">
-            <h2 className="text-xl font-bold mb-4 dark:text-black">
+          <div className="bg-white bg-opacity-80 rounded-lg shadow-lg p-8 text-center max-w-sm border-blue-500 border-4 dark:text-black drop-shadow-[0_0_5px_rgba(0,0,255,0.8)]">
+            <h2 className="text-xl font-bold font-mono mb-4 text-blue-600">
               Current Weather
             </h2>
-            <div className="text-lg mb-2 dark:text-black">
+            <div className="text-lg mb-2 font-mono text-blue-600">
               <strong>Temperature:</strong>{" "}
               <span>{loading ? "Loading..." : temperature}</span>
             </div>
-            <div className="text-lg mb-2 dark:text-black">
+            <div className="text-lg mb-2 font-mono text-blue-600">
               <strong>Pressure:</strong>{" "}
               <span>{loading ? "Loading..." : pressure}</span>
             </div>
-            <div className="text-lg mb-2 dark:text-black">
+            <div className="text-lg mb-2 font-mono text-blue-600">
               <strong>Actively Raining:</strong>{" "}
               <span>{loading ? "Loading..." : isRaining}</span>
             </div>
-            <div className="text-lg dark:text-black">
+            <div className="text-lg font-mono text-blue-600">
               <strong>AI-Powered Prediction:</strong>{" "}
               <span>{loading ? "Loading..." : prediction}</span>
             </div>
           </div>
         </div>
 
+        {/* AI Disclosure */}
+        <div className="absolute bottom-4 left-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-green-500 border-4 font-mono text-green-600 text-sm md:text-base lg:text-base drop-shadow-[0_0_5px_rgba(0,255,0,0.8)]">
+          <label className="flex items-center space-x-2">
+            <span>
+              <strong>AI Content Powered by:</strong> Google&apos;s Gemini 2.0
+              flash <br />
+              <strong>Database Powered by:</strong> Google Cloud&apos;s Firebase
+            </span>
+          </label>
+        </div>
+
         {/* Toggle Switch for Development */}
-        <div className="absolute bottom-4 right-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-purple-500 border-4">
-          <label className="flex items-center space-x-2 dark:text-black">
+        <div className="absolute bottom-4 right-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-purple-500 border-4 font-mono text-purple-600 text-sm md:text-base lg:text-base drop-shadow-[0_0_5px_rgba(128,0,128,0.8)]">
+          <label className="flex items-center space-x-2">
             <input
               type="checkbox"
               checked={isRaining === "Yes"}
@@ -181,21 +192,14 @@ export default function Home() {
         </div>
 
         {/* Toggle Switch for Development */}
-        <div className="absolute bottom-20 right-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-purple-500 border-4">
-          <label className="flex items-center space-x-2 dark:text-black">
+        <div className="absolute bottom-20 right-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-purple-500 border-4 font-mono text-purple-600 text-sm md:text-base lg:text-base drop-shadow-[0_0_5px_rgba(128,0,128,0.8)]">
+          <label className="flex items-center space-x-2">
             <input
               type="checkbox"
               checked={isNight === true}
               onChange={toggleIsNight} // Call the toggleIsRaining function
             />
             <span>Toggle Night</span>
-          </label>
-        </div>
-
-        {/* AI Disclosure */}
-        <div className="absolute bottom-4 left-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-green-500 border-4">
-          <label className="flex items-center space-x-2 dark:text-black">
-            <span>AI Content Powered by: Google&apos;s Gemini 2.0 flash</span>
           </label>
         </div>
       </div>
