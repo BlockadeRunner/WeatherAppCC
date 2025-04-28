@@ -49,6 +49,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [isNight, setIsNight] = useState(false);
   const [prediction, setPrediction] = useState<string | null>(null);
+  const [showPastWeather, setShowPastWeather] = useState(false);
+  const [pastWeatherData, setPastWeatherData] = useState<WeatherData[]>([]);
 
   // Function to toggle isRaining state
   function toggleIsRaining(): void {
@@ -60,6 +62,26 @@ export default function Home() {
   function toggleIsNight(): void {
     console.log("Toggling isNight state...");
     setIsNight((prev) => !prev);
+  }
+
+  // Function to toggle showPastWeather state
+  function toggleShowPastWeather(): void {
+    setShowPastWeather((prev) => !prev);
+    if (!showPastWeather) {
+      fetchPastWeatherData(); // Fetch data when toggling on
+    }
+  }
+
+  // Function to fetch past weather data
+  async function fetchPastWeatherData(): Promise<void> {
+    try {
+      const db = initializeFirestore();
+      const allData = await getAll(db);
+      const recentData = allData.slice(0, 6); // Get the most recent 6 entries
+      setPastWeatherData(recentData);
+    } catch (error) {
+      console.error("Error fetching past weather data:", error);
+    }
   }
 
   // Function to fetch or generate a prediction based on weather data
@@ -297,7 +319,7 @@ export default function Home() {
   return (
     <main className="flex flex-col h-screen w-screen">
       {/* Header Bar */}
-      <div className="flex flex-row w-full h-[20%] md:h-[20%] lg:h-[20%] items-center justify-center bg-gradient-to-r from-yellow-500 via-blue-500 to-gray-500">
+      <div className="flex flex-row w-full h-[20%] md:h-[20%] lg:h-[20%] items-center justify-center bg-gradient-to-r from-yellow-500 via-blue-500 to-gray-500 px-4">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-shadow-lg">
           Storm-Sync Weather
         </h1>
@@ -322,27 +344,90 @@ export default function Home() {
         ></div>
 
         {/* Weather Info Box */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-white bg-opacity-80 rounded-lg shadow-lg p-8 text-center max-w-sm border-blue-500 border-4 dark:text-black drop-shadow-[0_0_5px_rgba(0,0,255,0.8)]">
-            <h2 className="text-xl font-bold font-mono mb-4 text-blue-600">
-              Current Weather
-            </h2>
-            <div className="text-lg mb-2 font-mono text-blue-600">
-              <strong>Temperature:</strong>{" "}
-              <span>{loading ? "Loading..." : temperature}</span>
-            </div>
-            <div className="text-lg mb-2 font-mono text-blue-600">
-              <strong>Pressure:</strong>{" "}
-              <span>{loading ? "Loading..." : pressure}</span>
-            </div>
-            <div className="text-lg mb-2 font-mono text-blue-600">
-              <strong>Actively Raining:</strong>{" "}
-              <span>{loading ? "Loading..." : isRaining}</span>
-            </div>
-            <div className="text-lg font-mono text-blue-600">
-              <strong>AI-Powered Prediction:</strong>{" "}
-              <span>{loading ? "Loading..." : prediction}</span>
-            </div>
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{
+            marginTop: showPastWeather ? "100px" : "0", // Adjust margin when showPastWeather is true
+          }}
+        >
+          <div className="bg-white bg-opacity-80 rounded-lg shadow-lg p-8 text-center max-w-xl border-blue-500 border-4 dark:text-black drop-shadow-[0_0_5px_rgba(0,0,255,0.8)]">
+            {showPastWeather ? (
+              <>
+                <h2 className="text-xl font-bold font-mono mb-4 text-blue-600">
+                  Past Weather Data
+                </h2>
+                {pastWeatherData.length > 0 ? (
+                  <div className="flex flex-row justify-between">
+                    {/* First Column */}
+                    <ul className="text-left text-blue-600 font-mono w-1/2 pr-4">
+                      {pastWeatherData.slice(0, 3).map((entry, index) => (
+                        <li key={index} className="mb-2">
+                          <strong>Time:</strong>{" "}
+                          {new Date(
+                            entry.Time.seconds * 1000
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}{" "}
+                          <br />
+                          <strong>Temperature:</strong>{" "}
+                          {((entry.Temperature * 9) / 5 + 32).toFixed(1)}°F{" "}
+                          <br />
+                          <strong>Pressure:</strong> {entry.Pressure} mb <br />
+                          <strong>Raining:</strong>{" "}
+                          {entry["Wetness Value"] < 500 ? "Yes" : "No"}
+                        </li>
+                      ))}
+                    </ul>
+                    {/* Second Column */}
+                    <ul className="text-left text-blue-600 font-mono w-1/2 pl-4">
+                      {pastWeatherData.slice(3, 6).map((entry, index) => (
+                        <li key={index} className="mb-2">
+                          <strong>Time:</strong>{" "}
+                          {new Date(
+                            entry.Time.seconds * 1000
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}{" "}
+                          <br />
+                          <strong>Temperature:</strong>{" "}
+                          {((entry.Temperature * 9) / 5 + 32).toFixed(1)}°F{" "}
+                          <br />
+                          <strong>Pressure:</strong> {entry.Pressure} mb <br />
+                          <strong>Raining:</strong>{" "}
+                          {entry["Wetness Value"] > 100 ? "Yes" : "No"}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-blue-600">Loading past weather data...</p>
+                )}
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold font-mono mb-4 text-blue-600">
+                  Current Weather
+                </h2>
+                <div className="text-lg mb-2 font-mono text-blue-600">
+                  <strong>Temperature:</strong>{" "}
+                  <span>{loading ? "Loading..." : temperature}</span>
+                </div>
+                <div className="text-lg mb-2 font-mono text-blue-600">
+                  <strong>Pressure:</strong>{" "}
+                  <span>{loading ? "Loading..." : pressure}</span>
+                </div>
+                <div className="text-lg mb-2 font-mono text-blue-600">
+                  <strong>Actively Raining:</strong>{" "}
+                  <span>{loading ? "Loading..." : isRaining}</span>
+                </div>
+                <div className="text-lg font-mono text-blue-600">
+                  <strong>AI-Powered Prediction:</strong>{" "}
+                  <span>{loading ? "Loading..." : prediction}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -378,6 +463,18 @@ export default function Home() {
               onChange={toggleIsNight} // Call the toggleIsRaining function
             />
             <span>Toggle Night</span>
+          </label>
+        </div>
+
+        {/* Toggle Switch for Development: Past Weather */}
+        <div className="absolute bottom-25 left-4 bg-white bg-opacity-80 p-2 rounded shadow-md border-purple-500 border-4 font-mono text-purple-600 text-sm md:text-base lg:text-base drop-shadow-[0_0_5px_rgba(128,0,128,0.8)]">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={showPastWeather}
+              onChange={toggleShowPastWeather} // Call the toggleShowPastWeather function
+            />
+            <span>Toggle Past Weather</span>
           </label>
         </div>
       </div>
