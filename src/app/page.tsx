@@ -185,16 +185,16 @@ export default function Home() {
       // Accessing the values
       if (recent_data) {
         const pressure = recent_data.Pressure; // Pressure in mb
-        const temperature = (recent_data.Temperature * 9) / 5 + 32; // Temperature in °C converted to °F
-        const wetnessValue = recent_data["Wetness Value"]; // 0 dry, 1000 wet
+        const temperature = ((recent_data.Temperature * 9) / 5 + 32).toFixed(2); // Temperature in °C converted to °F
+        const wetnessValue = recent_data["Wetness Value"]; // above 500 dry, below 500 wet
         const time = new Date(recent_data.Time.seconds * 1000); // Convert Firestore Timestamp to Date
         const hours = time.getHours(); // Returns the hour (0-23)
 
         // Update the state with the fetched data
         setTemperature(`${temperature}°F`); // Set temperature state
         setPressure(`${pressure} mb`); // Set pressure state
-        setIsRaining(wetnessValue > 100 ? "Yes" : "No"); // Set isRaining state based on wetness value
-        const raining = wetnessValue > 100 ? "Yes" : "No"; // Set raining variable based on wetness value
+        setIsRaining(wetnessValue < 500 ? "Yes" : "No"); // Set isRaining state based on wetness value
+        const raining = wetnessValue < 500 ? "Yes" : "No"; // Set raining variable based on wetness value
 
         // Update background animations based on weather and time
         if (!isNaN(hours) && raining === "No") {
@@ -238,7 +238,7 @@ export default function Home() {
         const data = await response.json();
 
         // Extract temperature
-        const temp = data.properties.periods[0].temperature;
+        const temp = data.properties.periods[0].temperature.toFixed(2);
         setTemperature(`${temp}°F`);
 
         // Extract pressure
