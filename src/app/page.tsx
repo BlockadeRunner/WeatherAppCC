@@ -57,12 +57,12 @@ export default function Home() {
   // Helper function to check if cached data contains current-hour entries
   function hasCurrentHourData(data: WeatherData[]): boolean {
     const currentHour = new Date().getHours();
-    console.log("OOOOOOOOOOO Current hour:", currentHour); // Log the current hour for debugging
+    //console.log("OOOOOOOOOOO Current hour:", currentHour); // Log the current hour for debugging
 
-    console.log("OOOOOOOOOOO Cached data:", data); // Log the cached data for debugging
+    //console.log("OOOOOOOOOOO Cached data:", data); // Log the cached data for debugging
     for (let i = 0; i < data.length; i++) {
       const entryHour = new Date(data[i].Time.seconds * 1000).getHours();
-      console.log(` OOOOO Entry ${i} hour:`, entryHour); // Log the entry hour for debugging
+      //console.log(` OOOOO Entry ${i} hour:`, entryHour); // Log the entry hour for debugging
 
       if (entryHour === currentHour) {
         return true; // Return true as soon as a match is found
@@ -195,7 +195,7 @@ export default function Home() {
       .map((entry) => {
         const temperatureF = (entry.Temperature * 9) / 5 + 32; // Convert °C to °F
         const pressure = entry.Pressure;
-        const wetness = entry["Wetness Value"] > 100 ? "Yes" : "No";
+        const wetness = entry["Wetness Value"] < 500 ? "Yes" : "No";
         const time = new Date(entry.Time.seconds * 1000).toLocaleTimeString(
           [],
           { hour: "2-digit", minute: "2-digit" }
@@ -221,7 +221,7 @@ export default function Home() {
 
       // Check if cachedWeatherData contains current-hour data
       let all_data = cachedWeatherDataRef.current;
-      console.log("ALL DATA:", all_data); // Log the cached data for debugging
+      //console.log("ALL DATA:", all_data); // Log the cached data for debugging
 
       if (!hasCurrentHourData(all_data)) {
         console.log(
