@@ -20,7 +20,7 @@
 "use client";
 
 // import necessary libraries and components
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { GoogleGenAI } from "@google/genai";
 import {
   initializeFirestore,
@@ -51,6 +51,26 @@ export default function Home() {
   const [prediction, setPrediction] = useState<string | null>(null);
   const [showPastWeather, setShowPastWeather] = useState(false);
   const [pastWeatherData, setPastWeatherData] = useState<WeatherData[]>([]);
+  const [cachedWeatherData, setCachedWeatherData] = useState<WeatherData[]>([]);
+  const cachedWeatherDataRef = useRef<WeatherData[]>(cachedWeatherData); // Create a ref
+
+  // Helper function to check if cached data contains current-hour entries
+  function hasCurrentHourData(data: WeatherData[]): boolean {
+    const currentHour = new Date().getHours();
+    console.log("OOOOOOOOOOO Current hour:", currentHour); // Log the current hour for debugging
+
+    console.log("OOOOOOOOOOO Cached data:", data); // Log the cached data for debugging
+    for (let i = 0; i < data.length; i++) {
+      const entryHour = new Date(data[i].Time.seconds * 1000).getHours();
+      console.log(` OOOOO Entry ${i} hour:`, entryHour); // Log the entry hour for debugging
+
+      if (entryHour === currentHour) {
+        return true; // Return true as soon as a match is found
+      }
+    }
+
+    return false; // Return false if no match is found after looping through all entries
+  }
 
   // Function to toggle isRaining state
   function toggleIsRaining(): void {
@@ -103,6 +123,7 @@ export default function Home() {
 
         // Process weather data for AI input
         const previous_data = await processWeatherData(all_data);
+        console.log("Processed weather data for AI:", previous_data);
 
         // Generate a new prediction using AI
         const response = await ai.models.generateContent({
@@ -198,11 +219,24 @@ export default function Home() {
       // Initialize Firestore database access
       const db = initializeFirestore();
 
+      // Check if cachedWeatherData contains current-hour data
+      let all_data = cachedWeatherDataRef.current;
+      console.log("ALL DATA:", all_data); // Log the cached data for debugging
+
+      if (!hasCurrentHourData(all_data)) {
+        console.log(
+          "Cached data does not contain current-hour entries. Fetching from Firestore..."
+        );
+        all_data = await getAll(db); // Fetch all data from Firestore
+        //console.log("-------------Fetched all data from Firestore:", all_data); // Log the fetched data for debugging
+        setCachedWeatherData(all_data); // Update the cached data
+        //console.log("Cached weather data updated:", all_data); // Log the updated cached data for debugging
+      } else {
+        console.log("Using cached weather data.");
+      }
+
       // Fetch the most recent data from Firestore
       const recent_data = await getMostRecent(db);
-
-      // Fetch all data from Firestore for AI prediction
-      const all_data = await getAll(db); // Fetch all data for testing
 
       // Accessing the values
       if (recent_data) {
@@ -314,6 +348,11 @@ export default function Home() {
     const interval = setInterval(fetchWeather, 15000); // Fetch every 15 seconds
     return () => clearInterval(interval); // Cleanup interval on component unmount
   }, []);
+
+  // Keep the ref updated whenever the state changes
+  useEffect(() => {
+    cachedWeatherDataRef.current = cachedWeatherData;
+  }, [cachedWeatherData]);
 
   // Main webpage rendering
   return (
