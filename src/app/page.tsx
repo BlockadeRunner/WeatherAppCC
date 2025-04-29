@@ -345,7 +345,7 @@ export default function Home() {
   // useEffect to fetch weather data on mount and every 15 seconds
   useEffect(() => {
     fetchWeather(); // Initial fetch
-    const interval = setInterval(fetchWeather, 15000); // Fetch every 15 seconds
+    const interval = setInterval(fetchWeather, 60000); // Fetch every 60 seconds
     return () => clearInterval(interval); // Cleanup interval on component unmount
   }, []);
 

@@ -74,6 +74,7 @@ export function initializeFirestore() {
 // }
 
 export async function getAll(db: Firestore): Promise<WeatherData[]> {
+  console.log("QUERY: 6");
   const now = Timestamp.now();
   const oneHourMillis = 3600000; // 1 hour in milliseconds
 
@@ -111,7 +112,7 @@ export async function getAll(db: Firestore): Promise<WeatherData[]> {
 export async function getMostRecent(
   db: Firestore
 ): Promise<WeatherData | null> {
-  //console.log("Getting most recent data");
+  console.log("QUERY: 1");
   const q = query(
     collection(db, "WeatherData"),
     orderBy("Time", "desc"),
@@ -130,6 +131,7 @@ export async function getMostRecent(
 
 // Function to get the most recent prediction from Firestore
 export async function getPredictionForHour(): Promise<string> {
+  console.log("QUERY: 1");
   const db = initializeFirestore();
   const q = query(
     collection(db, "Predictions"),
