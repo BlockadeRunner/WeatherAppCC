@@ -396,7 +396,7 @@ export default function Home() {
                           <br />
                           <strong>Pressure:</strong> {entry.Pressure} mb <br />
                           <strong>Raining:</strong>{" "}
-                          {entry["Wetness Value"] > 100 ? "Yes" : "No"}
+                          {entry["Wetness Value"] < 500 ? "Yes" : "No"}
                         </li>
                       ))}
                     </ul>

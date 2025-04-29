@@ -28,6 +28,7 @@ import {
   doc,
   setDoc,
   Timestamp,
+  where,
 } from "firebase/firestore";
 
 // Define the WeatherData interface
@@ -57,19 +58,53 @@ export function initializeFirestore() {
   return db;
 }
 
-// Function to get all weather data from Firestore
+// // Function to get all weather data from Firestore
+// export async function getAll(db: Firestore): Promise<WeatherData[]> {
+//   //console.log("Getting all data");
+//   const querySnapshot = await getDocs(
+//     query(collection(db, "WeatherData"), orderBy("Time", "desc"))
+//   );
+
+//   const data: WeatherData[] = [];
+//   querySnapshot.forEach((doc: QueryDocumentSnapshot) => {
+//     data.push(doc.data() as WeatherData); // Cast each document's data to WeatherData
+//   });
+
+//   return data; // Return the array of data
+// }
+
 export async function getAll(db: Firestore): Promise<WeatherData[]> {
-  //console.log("Getting all data");
-  const querySnapshot = await getDocs(
-    query(collection(db, "WeatherData"), orderBy("Time", "desc"))
-  );
+  const now = Timestamp.now();
+  const oneHourMillis = 3600000; // 1 hour in milliseconds
 
   const data: WeatherData[] = [];
-  querySnapshot.forEach((doc: QueryDocumentSnapshot) => {
-    data.push(doc.data() as WeatherData); // Cast each document's data to WeatherData
-  });
 
-  return data; // Return the array of data
+  for (let i = 0; i < 3; i++) {
+    const startOfHour = new Timestamp(
+      Math.floor((now.toMillis() - (i + 1) * oneHourMillis) / 1000),
+      0
+    );
+    const endOfHour = new Timestamp(
+      Math.floor((now.toMillis() - i * oneHourMillis) / 1000),
+      0
+    );
+
+    const q = query(
+      collection(db, "WeatherData"),
+      orderBy("Time", "desc"),
+      limit(2),
+      where("Time", ">=", startOfHour),
+      where("Time", "<", endOfHour)
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    querySnapshot.forEach((doc: QueryDocumentSnapshot) => {
+      data.push(doc.data() as WeatherData);
+    });
+  }
+
+  return data;
 }
 
 // Function to get the most recent weather data from Firestore
